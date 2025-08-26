@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>폐기도서 도서관 · MVP</title>
+  <style>
+    /* ============== 기본 리셋 & 토큰 ============== */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, "Apple SD Gothic Neo", sans-serif;
+      color: #111; background: #fafafa;
+    }
+    :root{
+      --bg:#fafafa; --fg:#111; --muted:#6b7280;
+      --card:#fff; --border:#e5e7eb; --shadow:0 6px 20px rgba(0,0,0,.06);
+      --accent:#111; --accent-2:#16a34a; /* 초록 */
+      --radius:16px; --radius-lg:22px;
+    }
+    img{max-width:100%; display:block}
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; }
+
+    /* ============== 레이아웃 ============== */
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(8px);
+      background: rgba(255,255,255,.8);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 12px 0; }
+    .brand { display:flex; align-items:center; gap:10px }
+    .brand-badge{ width:36px; height:36px; border-radius:12px; background:#16a34a; color:#fff; display:grid; place-items:center; font-weight:800; box-shadow: var(--shadow); }
+    .brand h1{ font-size:18px; margin:0; font-weight:800; line-height:1}
+    .brand p{ margin:2px 0 0; font-size:12px; color: var(--muted); }
+
+    .tabs{ display:none; gap:8px }
+    .tabs button{
+      padding:8px 12px; border-radius:12px; border:1px solid var(--border);
+      background:#fff; font-weight:700;
+    }
+    .tabs button.active{ background: var(--accent); color:#fff; border-color: var(--accent); }
+    .search-shortcut{ display:inline-flex; align-items:center; gap:8px }
+
+    .points{
+      display:inline-flex; align-items:center; gap:8px;
+      background: var(--accent); color:#fff; padding:8px 12px; border-radius:12px; box-shadow: var(--shadow);
+      font-weight:700; font-size:12px;
+    }
+    .points .muted{ font-weight:600; opacity:.9 }
+    .points button{
+      font-size:11px; background: rgba(255,255,255,.15); border:0; color:#fff; padding:4px 8px; border-radius:8px;
+    }
+
+    main{ padding: 28px 0 64px; }
+    section{ margin-bottom: 36px; }
+
+    /* 카드/틀 공통 */
+    .card{ background: var(--card); border:1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+    .chip{ padding:8px 12px; border-radius:12px; border:1px solid var(--border); background:#fff; font-size:13px; }
+    .chip.active{ background: var(--accent); color:#fff; border-color: var(--accent); }
+    .btn{
+      padding:12px 16px; border-radius: 16px; border:1px solid var(--border); background:#fff; font-weight:700;
+    }
+    .btn.primary{ background: var(--accent); color:#fff; border-color: var(--accent); }
+    .btn.success{ background: var(--accent-2); color:#fff; border-color: var(--accent-2); }
+    .btn:disabled{ opacity:.5; cursor:not-allowed }
+
+    /* 그리드 */
+    .grid{ display:grid; gap:16px }
+    .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+    @media (max-width: 980px) {
+      .grid-2, .grid-3{ grid-template-columns: 1fr; }
+      .tabs{ display:flex }
+      .search-shortcut{ display:none }
+    }
+
+    /* 홈 히어로 */
+    .hero{ display:grid; grid-template-columns: 1.1fr .9fr; gap:20px; align-items:center }
+    @media (max-width: 980px){ .hero{ grid-template-columns: 1fr; } }
+    .hero h2{ font-size: clamp(28px, 4vw, 40px); margin:0; font-weight:900; line-height:1.15 }
+    .hero p{ color: var(--muted); margin:12px 0 0; font-size:15px }
+    .hero-cta{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap }
+    .stats{ display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
+    .stat{ background:#f4f4f5; border-radius:16px; padding:10px; text-align:center; }
+    .stat p{ margin:0; font-size:12px; color:var(--muted) }
+    .stat strong{ display:block; margin-top:4px; font-size:18px }
+
+    /* 검색 섹션 */
+    .toolbar{ display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between }
+    .field label{ display:block; font-size:13px; font-weight:700 }
+    .field input, .field select, .field textarea{
+      width:100%; margin-top:6px; padding:12px 14px; border-radius:14px; border:1px solid var(--border); outline: none;
+    }
+    .categories{ display:flex; gap:8px; flex-wrap:wrap }
+    .book{ overflow:hidden }
+    .book .meta{ padding:12px 14px }
+    .book h3{ margin:0; font-size:16px }
+    .meta-sub{ color: var(--muted); font-size:13px }
+
+    /* 모달 */
+    .modal{
+      position: fixed; inset: 0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,.45);
+      padding:16px; z-index: 50;
+    }
+    .modal.open{ display:flex }
+    .modal .panel{ max-width: 560px; width:100%; background:#fff; border-radius: 20px; padding:18px; box-shadow: var(--shadow); }
+
+    footer{ border-top:1px solid var(--border); padding: 22px 0; color: var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+  <!-- =================== 헤더 =================== -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="주요 메뉴">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">B</div>
+        <div>
+          <h1>폐기도서 도서관</h1>
+          <p>Discarded Books Library · Carbon Neutral</p>
+        </div>
+      </div>
+
+      <!-- 데스크톱 탭 -->
+      <div class="tabs" id="tabsMobile"></div>
+      <div style="display:flex; align-items:center; gap:10px">
+        <div class="points" id="points">
+          <span class="muted">탄소중립 포인트</span>
+          <span id="pointsVal">360p</span>
+          <button id="add100" title="+100 포인트 충전 (시뮬)">+100</button>
+        </div>
+        <button class="btn primary search-shortcut" id="goSearch">검색</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =================== 본문 =================== -->
+  <main class="container">
+    <!-- 탭 버튼 (데스크톱) -->
+    <div class="tabs" id="tabsDesktop" style="margin-bottom:12px"></div>
+
+    <!-- 홈 -->
+    <section id="home">
+      <div class="hero">
+        <div>
+          <h2>폐기도서의 <span style="color:#166534">두 번째 삶</span>을 열다</h2>
+          <p>전국 도서관에서 제적·폐기된 책을 수집·정리해 시민에게 다시 연결합니다. 탄소중립 포인트로 합리적으로 이용하고,
+            독서가 곧 친환경 실천이 되는 경험을 만나보세요.</p>
+          <div class="hero-cta">
+            <button class="btn primary" id="ctaSearch">지금 검색하기</button>
+            <a class="btn" href="#how">이용안내 보기</a>
+          </div>
+          <div class="grid stats" style="margin-top:14px">
+            <div class="stat"><p>누적 보존 도서</p><strong>128,420권</strong></div>
+            <div class="stat"><p>추정 CO₂ 감축</p><strong>62.3t</strong></div>
+            <div class="stat"><p>이번 주 기증</p><strong>1,204권</strong></div>
+          </div>
+        </div>
+        <div style="position:relative">
+          <img src="https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1600&auto=format&fit=crop"
+               alt="서가에 꽂힌 다양한 책" class="card" style="height: 360px; object-fit: cover; border-radius: 24px;">
+          <div class="card" style="position:absolute; left:12px; right:12px; bottom:-14px; padding:12px; border-radius: 18px;">
+            <div class="grid grid-3">
+              <div class="stat"><p>오늘 이용자</p><strong>342명</strong></div>
+              <div class="stat"><p>평균 대여권수</p><strong>2.2권</strong></div>
+              <div class="stat"><p>기증 대기</p><strong>86건</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 검색 -->
+    <section id="search" hidden>
+      <div class="toolbar">
+        <div class="field" style="flex:1; min-width:260px">
+          <label for="q">도서 검색</label>
+          <input id="q" placeholder="제목/저자/연도/분야로 검색" />
+        </div>
+        <div>
+          <p style="margin:0; font-weight:700; font-size:13px">분야</p>
+          <div class="categories" id="categories"></div>
+        </div>
+        <div>
+          <button class="btn success" id="borrowBtn" disabled>선택 대여 (최대 3권)</button>
+        </div>
+      </div>
+
+      <div class="grid grid-3" id="results" style="margin-top:16px"></div>
+    </section>
+
+    <!-- 이용 안내 -->
+    <section id="how" hidden>
+      <h3 style="font-size:22px; font-weight:900; margin:0 0 12px">이용 안내</h3>
+      <div class="grid grid-4" style="display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:12px">
+        <div class="card" style="padding:16px">
+          <p style="color:var(--muted); font-size:12px; margin:0 0 4px">STEP 1</p>
+          <p style="font-weight:800; margin:0">검색/예약</p>
+          <p style="color:var(--muted); font-size:14px">온라인에서 폐기도서를 검색하고 가까운 거점에 예약합니다.</p>
+        </div>
+        <div class="card" style="padding:16px">
+          <p style="color:var(--muted); font-size:12px; margin:0 0 4px">STEP 2</p>
+          <p style="font-weight:800; margin:0">방문/입장</p>
+          <p style="color:var(--muted); font-size:14px">거점 도서관 방문 후 탄소중립 포인트로 입장합니다.</p>
+        </div>
+        <div class="card" style="padding:16px">
+          <p style="color:var(--muted); font-size:12px; margin:0 0 4px">STEP 3</p>
+          <p style="font-weight:800; margin:0">선택/소장</p>
+          <p style="color:var(--muted); font-size:14px">1회 100 포인트로 당일 최대 3권까지 소장/대여할 수 있어요.</p>
+        </div>
+        <div class="card" style="padding:16px">
+          <p style="color:var(--muted); font-size:12px; margin:0 0 4px">STEP 4</p>
+          <p style="font-weight:800; margin:0">공유/기증</p>
+          <p style="color:var(--muted); font-size:14px">다 읽은 책은 다시 기증하거나 다른 이용자에게 순환해요.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:16px">
+        <div class="card" style="padding:16px; border-color:#bbf7d0; background:#f0fdf4">
+          <h4 style="margin:0 0 8px; font-size:18px">포인트 결제 안내</h4>
+          <ul style="margin:0; padding-left:18px; color:var(--muted); font-size:14px">
+            <li>입장료는 <b>탄소중립 포인트</b> 납부가 원칙입니다.</li>
+            <li>포인트 부족 시 현금 등으로 대체 결제 가능.</li>
+            <li>이용 실적은 환경부 운영체계에 연동됩니다.</li>
+          </ul>
+        </div>
+        <div class="card" style="padding:16px">
+          <h4 style="margin:0 0 8px; font-size:18px">자주 묻는 질문 (요약)</h4>
+          <details class="card" style="padding:12px; border-radius:12px; margin-bottom:8px">
+            <summary style="font-weight:700; cursor:pointer">대여/소장 차이는?</summary>
+            <p style="color:var(--muted); font-size:14px">MVP에서는 동일하게 취급하되, 정식 서비스에선 반납 주기/소장 한도 정책을 별도 공지합니다.</p>
+          </details>
+          <details class="card" style="padding:12px; border-radius:12px">
+            <summary style="font-weight:700; cursor:pointer">도서 상태 기준은?</summary>
+            <p style="color:var(--muted); font-size:14px">최상/양호/보통 3단계로 표기하며, 훼손이 심한 자료는 보존처리 후 제공합니다.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 거점 도서관 -->
+    <section id="branches" hidden>
+      <h3 style="font-size:22px; font-weight:900; margin:0 0 12px">거점 도서관</h3>
+      <div class="grid grid-3" id="branchList"></div>
+    </section>
+
+    <!-- 기증 신청 -->
+    <section id="donate" hidden>
+      <h3 style="font-size:22px; font-weight:900; margin:0 0 12px">도서 기증 신청</h3>
+      <form class="card" id="donateForm" style="padding:16px; max-width:760px">
+        <div class="field">
+          <label for="name">기증자 성명</label>
+          <input id="name" required>
+        </div>
+        <div class="grid grid-2" style="margin-top:10px">
+          <div class="field">
+            <label for="email">이메일</label>
+            <input id="email" type="email" required>
+          </div>
+          <div class="field">
+            <label for="phone">연락처</label>
+            <input id="phone" required>
+          </div>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label for="list">기증 목록 (제목/저자/발행연도)</label>
+          <textarea id="list" rows="5" placeholder="예) 고전문학 산책 / 최은지 / 2008&#10;지구를 구하는 작은 독서 / 김하늘 / 2017"></textarea>
+        </div>
+        <div class="grid grid-2" style="margin-top:10px">
+          <div class="field">
+            <label for="pickup">수거 방식</label>
+            <select id="pickup">
+              <option>거점 방문</option>
+              <option>택배 수거 신청</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="branchSel">거점 선택</label>
+            <select id="branchSel"></select>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:10px">
+          <input id="agree" type="checkbox" required>
+          <label for="agree" style="color:var(--muted); font-size:14px">개인정보 수집 및 기증 심사 기준에 동의합니다.</label>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:14px">
+          <button class="btn success" type="submit">기증 신청</button>
+        </div>
+      </form>
+      <div class="card" id="donateDone" hidden style="padding:16px; max-width:760px; background:#f0fdf4; border-color:#bbf7d0; margin-top:10px">
+        <strong>신청이 접수되었습니다.</strong>
+        <p style="margin:6px 0 0; color:var(--muted)">평균 3영업일 이내에 담당자가 연락드립니다. 감사합니다.</p>
+      </div>
+    </section>
+
+    <!-- 법률(안) 요약 -->
+    <section id="law" hidden>
+      <h3 style="font-size:22px; font-weight:900; margin:0 0 12px">법률(안) 핵심 요약</h3>
+      <div class="grid grid-2">
+        <div class="card" style="padding:16px">
+          <h4 style="margin:0 0 6px">목적</h4>
+          <p style="color:var(--muted)">폐기도서를 체계적으로 수집·관리하여 국민에게 제공하고, 탄소중립 포인트 제도와 연계하여 지속가능한 문화 향유와 탄소중립 사회 구현에 기여합니다.</p>
+        </div>
+        <div class="card" style="padding:16px">
+          <h4 style="margin:0 0 6px">주요 조항</h4>
+          <ul style="margin:0; padding-left:18px; color:var(--muted)">
+            <li>광역자치단체별 1개소 이상 설치, 문체부 총괄·환경부 협력</li>
+            <li>입장료는 탄소중립 포인트 납부가 원칙</li>
+            <li>1회 100포인트로 당일 최대 3권 소장/대여</li>
+            <li>포인트 부족 시 현금 등 대체 결제 가능</li>
+            <li>이용 실적은 환경부 운영체계에 연동</li>
+            <li>디지털 정보시스템(검색/열람) 구축·운영</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="padding:12px; margin-top:10px; background:#f4f4f5">
+        <small style="color:var(--muted)">* 본 페이지는 이해를 돕기 위한 요약입니다. 정식 내용은 고시되는 시행령·시행규칙을 따릅니다.</small>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" hidden>
+      <h3 style="font-size:22px; font-weight:900; margin:0 0 12px">FAQ</h3>
+      <details class="card" style="padding:14px; margin-bottom:8px">
+        <summary style="font-weight:700; cursor:pointer">폐기도서는 어디서 오나요?</summary>
+        <p style="color:var(--muted); font-size:14px">공공/학교/대학 도서관 등에서 발생한 제적·폐기 자료를 수집·정리하여 제공합니다.</p>
+      </details>
+      <details class="card" style="padding:14px; margin-bottom:8px">
+        <summary style="font-weight:700; cursor:pointer">포인트는 어디서 확인하나요?</summary>
+        <p style="color:var(--muted); font-size:14px">정부 통합 탄소중립 포인트 계정으로 연동되며, 마이페이지에서 잔여 포인트와 이용 내역을 확인할 수 있어요.</p>
+      </details>
+      <details class="card" style="padding:14px;">
+        <summary style="font-weight:700; cursor:pointer">기증 기준은 무엇인가요?</summary>
+        <p style="color:var(--muted); font-size:14px">저작권/상태/수요 등을 종합 심사해 반입합니다. 손상 심하면 보존처리 또는 재활용합니다.</p>
+      </details>
+    </section>
+  </main>
+
+  <!-- =================== 모달 =================== -->
+  <div class="modal" id="borrowModal" role="dialog" aria-modal="true" aria-labelledby="borrowTitle">
+    <div class="panel">
+      <h4 id="borrowTitle" style="margin:0 0 6px; font-size:20px; font-weight:900">포인트로 대여하기</h4>
+      <p id="borrowDesc" style="color:var(--muted); font-size:14px; margin: 0 0 14px">
+        1회 입장 시 <b>100 포인트</b>로 <b>당일 최대 3권</b>까지 소장/대여할 수 있어요.
+      </p>
+      <div style="display:flex; justify-content:flex-end; gap:8px">
+        <button class="btn" id="cancelBorrow">취소</button>
+        <button class="btn success" id="confirmBorrow">100 포인트 차감 후 대여</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      ⓒ <span id="year"></span> 폐기도서 도서관 (MVP). 본 서비스는 시범 UI로 실제 운영과 다를 수 있습니다.
+    </div>
+  </footer>
+
+  <script>
+    // ======================= MOCK 데이터 =======================
+    const CATEGORIES = ["문학", "역사", "과학", "예술", "사회", "기술", "아동", "기타"];
+    const BOOKS = [
+      { id:"b1", title:"지구를 구하는 작은 독서", author:"김하늘", year:2017, category:"사회", condition:"양호",
+        cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop" },
+      { id:"b2", title:"중고서적의 경제학", author:"이수빈", year:2013, category:"기술", condition:"보통",
+        cover:"https://images.unsplash.com/photo-1455884981818-54cb785db6fc?q=80&w=1200&auto=format&fit=crop" },
+      { id:"b3", title:"도서관과 탄소중립", author:"정다온", year:2020, category:"사회", condition:"최상",
+        cover:"https://images.unsplash.com/photo-1513475382585-d06e58bcb0ea?q=80&w=1200&auto=format&fit=crop" },
+      { id:"b4", title:"아이와 함께 읽는 과학", author:"박윤호", year:2015, category:"과학", condition:"양호",
+        cover:"https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=1200&auto=format&fit=crop" },
+      { id:"b5", title:"고전문학 산책", author:"최은지", year:2008, category:"문학", condition:"보통",
+        cover:"https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1200&auto=format&fit=crop" },
+      { id:"b6", title:"예술, 지속가능성을 그리다", author:"RYU", year:2019, category:"예술", condition:"양호",
+        cover:"https://images.unsplash.com/photo-1457694587812-e8bf29a43845?q=80&w=1200&auto=format&fit=crop" },
+    ];
+    const BRANCHES = [
+      { id:"seoul", name:"서울 폐기도서 도서관", address:"서울특별시 중구 책사랑로 10", phone:"02-123-4567", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"busan", name:"부산 폐기도서 도서관", address:"부산광역시 해운대구 바다길 42", phone:"051-987-6543", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"jeonju", name:"전주 폐기도서 도서관", address:"전북 전주시 완산구 한지로 88", phone:"063-222-1122", hours:"화–일 10:00–18:00 (월 휴관)" },
+    ];
+
+    // ======================= 상태 =======================
+    const state = {
+      active: "home",
+      query: "",
+      category: null,
+      selected: new Set(), // 선택한 도서 id
+      points: 360,
+    };
+
+    // ======================= DOM 참조 =======================
+    const sections = ["home","search","how","branches","donate","law","faq"];
+    const tabsDesktop = document.getElementById("tabsDesktop");
+    const tabsMobile  = document.getElementById("tabsMobile");
+    const yearEl = document.getElementById("year");
+    const pointsVal = document.getElementById("pointsVal");
+    const add100Btn = document.getElementById("add100");
+    const goSearchBtn = document.getElementById("goSearch");
+    const ctaSearchBtn = document.getElementById("ctaSearch");
+
+    const qInput = document.getElementById("q");
+    const categoriesWrap = document.getElementById("categories");
+    const resultsWrap = document.getElementById("results");
+    const borrowBtn = document.getElementById("borrowBtn");
+
+    const branchList = document.getElementById("branchList");
+    const donateForm = document.getElementById("donateForm");
+    const donateDone = document.getElementById("donateDone");
+    const branchSel = document.getElementById("branchSel");
+
+    const borrowModal = document.getElementById("borrowModal");
+    const cancelBorrow = document.getElementById("cancelBorrow");
+    const confirmBorrow = document.getElementById("confirmBorrow");
+
+    // ======================= 유틸 =======================
+    function $(id){ return document.getElementById(id); }
+    function show(tab){
+      state.active = tab;
+      sections.forEach(s => { $(s).hidden = (s !== tab); });
+      // 탭 버튼 active 갱신
+      [...tabsDesktop.children, ...tabsMobile.children].forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+      if (tab === "search") qInput?.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function fmtPoints(n){ return n.toLocaleString() + "p"; }
+
+    // ======================= 탭 버튼 렌더 =======================
+    const TAB_ITEMS = [
+      ["home","홈"],["search","검색"],["how","이용안내"],["branches","거점도서관"],["donate","기증하기"],["law","법률(안)"],["faq","FAQ"],
+    ];
+    function renderTabs(container){
+      container.innerHTML = "";
+      TAB_ITEMS.forEach(([k, label])=>{
+        const b = document.createElement("button");
+        b.className = "chip" + (state.active===k ? " active":"");
+        b.dataset.tab = k;
+        b.textContent = label;
+        b.addEventListener("click", ()=>show(k));
+        container.appendChild(b);
+      });
+    }
+
+    // ======================= 포인트/헤더 =======================
+    function updateHeader(){
+      pointsVal.textContent = fmtPoints(state.points);
+    }
+
+    // ======================= 검색/카테고리/결과 =======================
+    function renderCategories(){
+      categoriesWrap.innerHTML = "";
+      const all = document.createElement("button");
+      all.className = "chip" + (!state.category ? " active": "");
+      all.textContent = "전체";
+      all.addEventListener("click", ()=>{ state.category=null; renderCategories(); renderResults(); });
+      categoriesWrap.appendChild(all);
+
+      CATEGORIES.forEach(c=>{
+        const chip = document.createElement("button");
+        chip.className = "chip" + (state.category===c ? " active": "");
+        chip.textContent = c;
+        chip.addEventListener("click", ()=>{ state.category=c; renderCategories(); renderResults(); });
+        categoriesWrap.appendChild(chip);
+      });
+    }
+    function filteredBooks(){
+      const q = state.query.trim().toLowerCase();
+      return BOOKS.filter(b=>{
+        const catOk = state.category ? b.category===state.category : true;
+        const qOk = !q ? true : [b.title,b.author,String(b.year),b.category].join(" ").toLowerCase().includes(q);
+        return catOk && qOk;
+      });
+    }
+    function renderResults(){
+      const data = filteredBooks();
+      resultsWrap.innerHTML = "";
+      data.forEach(b=>{
+        const art = document.createElement("article");
+        art.className = "card book";
+        art.innerHTML = `
+          <img src="${b.cover}" alt="${b.title} 표지" style="height:180px; width:100%; object-fit:cover">
+          <div class="meta">
+            <h3>${b.title}</h3>
+            <div class="meta-sub">${b.author} · ${b.year} · ${b.category} · 상태 ${b.condition}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px">
+              <button class="btn ${state.selected.has(b.id) ? "primary": ""}" data-id="${b.id}">
+                ${state.selected.has(b.id) ? "선택됨" : "선택"}
+              </button>
+              <span class="meta-sub">포인트 결제 가능</span>
+            </div>
+          </div>
+        `;
+        art.querySelector("button").addEventListener("click", ()=>{
+          if (state.selected.has(b.id)) state.selected.delete(b.id);
+          else {
+            // 최대 3권 제한
+            if (state.selected.size >= 3) {
+              alert("최대 3권까지 선택할 수 있어요.");
+              return;
+            }
+            state.selected.add(b.id);
+          }
+          renderResults(); updateBorrowButton();
+        });
+        resultsWrap.appendChild(art);
+      });
+    }
+    function updateBorrowButton(){
+      const can = state.selected.size > 0 && state.selected.size <= 3 && state.points >= 100;
+      borrowBtn.disabled = !can;
+    }
+
+    // ======================= 거점/기증 =======================
+    function renderBranches(){
+      branchList.innerHTML = "";
+      branchSel.innerHTML = "";
+      BRANCHES.forEach(b=>{
+        // 카드
+        const card = document.createElement("article");
+        card.className = "card";
+        card.style.padding = "16px";
+        card.innerHTML = `
+          <h4 style="margin:0 0 6px; font-size:18px; font-weight:800">${b.name}</h4>
+          <div style="color:var(--muted); font-size:14px">${b.address}</div>
+          <div style="color:var(--muted); font-size:14px">${b.hours}</div>
+          <div style="color:var(--muted); font-size:14px">${b.phone}</div>
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn primary">길찾기</button>
+            <button class="btn">재고 보기</button>
+          </div>
+        `;
+        branchList.appendChild(card);
+        // 셀렉트
+        const opt = document.createElement("option");
+        opt.value = b.id; opt.textContent = b.name;
+        branchSel.appendChild(opt);
+      });
+    }
+
+    // ======================= 모달 로직 =======================
+    borrowBtn.addEventListener("click", ()=> {
+      // 선택 수 요약
+      const n = state.selected.size;
+      document.getElementById("borrowDesc").innerHTML =
+        `1회 입장 시 <b>100 포인트</b>로 <b>당일 최대 3권</b>까지 소장/대여할 수 있어요. 선택한 도서 수: ${n}권.`;
+      borrowModal.classList.add("open");
+    });
+    cancelBorrow.addEventListener("click", ()=> borrowModal.classList.remove("open"));
+    confirmBorrow.addEventListener("click", ()=>{
+      if (state.points < 100) { alert("포인트가 부족합니다."); return; }
+      state.points -= 100;
+      state.selected.clear();
+      updateHeader(); renderResults(); updateBorrowButton();
+      borrowModal.classList.remove("open");
+      alert("대여가 완료되었습니다. 100 포인트가 차감되었어요.");
+    });
+
+    // ======================= 이벤트 바인딩 =======================
+    add100Btn.addEventListener("click", ()=>{ state.points += 100; updateHeader(); });
+    goSearchBtn.addEventListener("click", ()=>show("search"));
+    ctaSearchBtn.addEventListener("click", ()=>show("search"));
+    qInput.addEventListener("input", (e)=>{ state.query = e.target.value; renderResults(); });
+
+    donateForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      donateForm.reset();
+      donateDone.hidden = false;
+      window.setTimeout(()=> donateDone.hidden = true, 4000);
+    });
+
+    // ======================= 초기 렌더 =======================
+    function init(){
+      yearEl.textContent = new Date().getFullYear();
+      // 탭 두 군데(데스크/모바일) 렌더
+      renderTabs(tabsDesktop); renderTabs(tabsMobile);
+      // 포인트/카테고리/결과/거점 렌더
+      updateHeader(); renderCategories(); renderResults(); renderBranches();
+      // 시작 탭 표시
+      show(state.active);
+    }
+    init();
+  </script>
+</body>
+</html>
