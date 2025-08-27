@@ -16,6 +16,7 @@
       --radius:16px; --radius-lg:22px;
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --chip:#f5f5f6;
     }
     body {
       margin: 0;
@@ -43,13 +44,16 @@
     }
     .nav { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 8px 0 12px; }
     .brand { display:flex; align-items:center; gap:10px }
-    .brand-badge{ width:40px; height:40px; border-radius:13px; background:#16a34a; color:#fff; display:grid; place-items:center; font-weight:800; box-shadow: var(--shadow); }
+    .brand-badge{
+      width:44px; height:44px; border-radius:13px; background:#fff; color:#fff; display:grid; place-items:center; box-shadow: var(--shadow); border:1px solid var(--border);
+    }
+    .brand-badge svg{ width:30px; height:30px; }
     .brand h1{ font-size:18px; margin:0; font-weight:900; line-height:1}
     .brand p{ margin:2px 0 0; font-size:12px; color: var(--muted); }
 
     /* 데스크톱 탭 */
-    .tabs-desktop{ display:none; gap:8px }
-    .chip{ padding:10px 14px; min-height:44px; border-radius:14px; border:1px solid var(--border); background:#fff; font-weight:800; font-size:14px; }
+    .tabs-desktop{ display:none; gap:8px; flex-wrap:wrap }
+    .chip{ padding:10px 14px; min-height:44px; border-radius:14px; border:1px solid var(--border); background:var(--chip); font-weight:800; font-size:14px; }
     .chip.active{ background: var(--accent); color:#fff; border-color: var(--accent); }
 
     /* 상단 보조 */
@@ -77,7 +81,7 @@
     .btn.success{ background: var(--accent-2); color:#fff; border-color: var(--accent-2); }
     .btn:disabled{ opacity:.5; cursor:not-allowed }
 
-    /* 그리드 (모바일 1열 → 점진적으로 증가) */
+    /* 그리드 */
     .grid{ display:grid; gap:14px }
     .grid-2{ grid-template-columns: 1fr; }
     .grid-3{ grid-template-columns: 1fr; }
@@ -89,8 +93,8 @@
       .grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
     }
 
-    /* 홈 히어로 (모바일 1열) */
-    .hero{ display:grid; grid-template-columns: 1fr; gap:16px; align-items:center }
+    /* 홈 히어로 */
+    .hero{ display:grid; grid-template-columns: 1fr; gap:16px; align-items:center; position:relative }
     .hero h2{ font-size: clamp(24px, 5.2vw, 40px); margin:0; font-weight:900; line-height:1.15; letter-spacing:-.2px }
     .hero p{ color: var(--muted); margin:10px 0 0; font-size:15px }
     .hero-cta{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap }
@@ -98,6 +102,17 @@
     .stat{ background:#f4f4f5; border-radius:14px; padding:10px; text-align:center; }
     .stat p{ margin:0; font-size:12px; color:var(--muted) }
     .stat strong{ display:block; margin-top:4px; font-size:18px }
+
+    /* 작은 위젯(우상단/우하단) */
+    .floating{
+      position:absolute; right:0; display:grid; gap:8px;
+      width:min(100%, 280px);
+    }
+    .widget{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:10px; box-shadow: var(--shadow) }
+    .widget h5{ margin:0 0 6px; font-size:13px; font-weight:900; display:flex; align-items:center; gap:6px }
+    .rank li{ display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px dashed #eee; font-size:12px }
+    .rank li:last-child{ border-bottom:none }
+    .pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid var(--border); border-radius:999px; font-size:12px; background:#fff }
 
     /* 검색 섹션 */
     .toolbar{ display:grid; gap:12px; align-items:stretch }
@@ -132,9 +147,32 @@
       padding:16px; z-index: 50;
     }
     .modal.open{ display:flex }
-    .modal .panel{ max-width: 560px; width:100%; background:#fff; border-radius: 20px; padding:18px; box-shadow: var(--shadow); }
+    .modal .panel{ max-width: 640px; width:100%; background:#fff; border-radius: 20px; padding:18px; box-shadow: var(--shadow); }
 
     footer{ border-top:1px solid var(--border); padding: 22px 0 calc(22px + var(--safe-bottom)); color: var(--muted); font-size:14px; }
+    .tooltip{ position:relative; cursor:help; border-bottom:1px dotted #aaa }
+    .tooltip:hover .tip{ opacity:1; transform: translateY(0) }
+    .tip{ position:absolute; left:0; right:auto; top:120%; z-index:10; background:#111; color:#fff; padding:8px 10px; border-radius:10px; font-size:12px; width:240px; opacity:0; transform: translateY(6px); transition:.2s; }
+    @media (min-width:980px){
+      .floating{ top:0 }
+    }
+
+    /* 위젯이 항상 가장 위에 오도록 */
+    .floating{ z-index: 6; }
+
+    /* 홈 이미지 하단 오버레이 카드가 위젯을 가리지 않도록 */
+    .hero-overlay{ z-index: 1; }
+
+    @media (max-width: 979px){
+      .floating{
+        position: static;
+        width: 100%;
+        margin-top: 8px;
+      }
+    }
+
+    /* 기부자 랭크에 여백 */
+    #rankDonors{ margin-bottom: 4px; }
   </style>
 </head>
 <body>
@@ -142,7 +180,18 @@
   <header>
     <div class="container nav" role="navigation" aria-label="주요 메뉴">
       <div class="brand">
-        <div class="brand-badge" aria-hidden="true">B</div>
+        <!-- (4) 정부마크 느낌의 '태극+책' SVG 배지 -->
+        <div class="brand-badge" aria-hidden="true" title="태극+책 심벌(시안)">
+          <svg viewBox="0 0 64 64" role="img" aria-label="태극 문양과 책">
+            <!-- 책 -->
+            <rect x="10" y="30" width="44" height="18" rx="4" fill="#16a34a" opacity=".15" />
+            <path d="M12 30h40v12c-8 0-16 6-20 6s-12-6-20-6V30z" fill="#16a34a"/>
+            <!-- 태극 -->
+            <circle cx="32" cy="20" r="10" fill="#fff" stroke="#111" stroke-width="2"/>
+            <path d="M22 20a10 10 0 0 1 18-6 7 7 0 1 0 0 12 10 10 0 0 1-18-6z" fill="#e11d48"/>
+            <path d="M42 20a10 10 0 0 1-18 6 7 7 0 1 0 0-12 10 10 0 0 1 18 6z" fill="#2563eb"/>
+          </svg>
+        </div>
         <div>
           <h1>폐기도서 도서관</h1>
           <p>Discarded Books Library · Carbon Neutral</p>
@@ -173,13 +222,40 @@
           <div class="hero-cta">
             <button class="btn primary" id="ctaSearch">지금 검색하기</button>
             <a class="btn" href="#how">이용안내 보기</a>
+            <!-- (2) 인센티브 안내 빠른 이동 -->
+            <a class="btn" href="#incentives">인센티브 보기</a>
           </div>
           <div class="grid stats" style="margin-top:14px">
-            <div class="stat"><p>누적 보존 도서</p><strong>128,420권</strong></div>
-            <div class="stat"><p>추정 CO₂ 감축</p><strong>62.3t</strong></div>
+            <div class="stat">
+              <p>누적 보존 도서</p>
+              <strong>128,420권</strong>
+            </div>
+            <div class="stat">
+              <p class="tooltip">추정 CO₂ 감축
+                <span class="tip">62.3t CO₂는 성인 약 40~50명 1년 가정 전력 사용량에 근접(개략 환산)</span>
+              </p>
+              <strong>62.3t</strong>
+            </div>
             <div class="stat"><p>이번 주 기증</p><strong>1,204권</strong></div>
           </div>
         </div>
+
+        <!-- (5)(6) 우상단 랭크 & 우하단 기부자 위젯 -->
+        <div class="floating" style="margin-top:8px">
+          <div class="widget" aria-live="polite">
+            <h5>📈 인기 대출 TOP 5</h5>
+            <ol class="rank" id="rankLoans"></ol>
+          </div>
+          <div class="widget">
+            <h5>🛒 인기 판매 TOP 5</h5>
+            <ol class="rank" id="rankSales"></ol>
+          </div>
+          <div class="widget" style="opacity:.95">
+            <h5>🎗️ 이달의 기부자</h5>
+            <ol class="rank" id="rankDonors"></ol>
+          </div>
+        </div>
+
         <div style="position:relative">
           <img
             src="https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1600&auto=format&fit=crop"
@@ -188,7 +264,8 @@
             loading="lazy"
             width="1200" height="360"
             style="height: 360px; object-fit: cover; border-radius: 24px;">
-          <div class="card" style="position:absolute; left:12px; right:12px; bottom:-14px; padding:12px; border-radius: 18px;">
+          <!-- 기존: <div class="card" ... -->
+          <div class="card hero-overlay" style="position:absolute; left:12px; right:12px; bottom:-14px; padding:12px; border-radius: 18px;">
             <div class="grid" style="grid-template-columns: repeat(3,1fr); gap:8px">
               <div class="stat"><p>오늘 이용자</p><strong>342명</strong></div>
               <div class="stat"><p>평균 대여권수</p><strong>2.2권</strong></div>
@@ -204,8 +281,15 @@
       <div class="toolbar">
         <div class="field">
           <label for="q">도서 검색</label>
-          <input id="q" placeholder="제목/저자/연도/분야로 검색" inputmode="search" />
+          <input id="q" placeholder="제목/저자/연도/분야/십진분류코드(예: 300, 821)로 검색" inputmode="search" />
         </div>
+
+        <!-- (3) 십진분류체계(간략 DDC/KDC 공통 10대류) 필터 -->
+        <div>
+          <p style="margin:0 0 6px; font-weight:800; font-size:13px">십진분류(대류)</p>
+          <div class="categories" id="ddcCats"></div>
+        </div>
+
         <div>
           <p style="margin:0 0 6px; font-weight:800; font-size:13px">분야</p>
           <div class="categories" id="categories"></div>
@@ -243,33 +327,42 @@
           <p style="color:var(--muted); font-size:14px">다 읽은 책은 다시 기증하거나 다른 이용자에게 순환해요.</p>
         </div>
       </div>
+    </section>
 
-      <div class="grid grid-2" style="margin-top:12px">
-        <div class="card" style="padding:14px; border-color:#bbf7d0; background:#f0fdf4">
-          <h4 style="margin:0 0 8px; font-size:18px">포인트 결제 안내</h4>
+    <!-- (2) 인센티브 -->
+    <section id="incentives" hidden>
+      <h3 style="font-size:20px; font-weight:900; margin:0 0 10px">기증 인센티브</h3>
+      <div class="grid grid-2">
+        <div class="card" style="padding:14px">
+          <h4 style="margin:0 0 8px">포인트 & 혜택</h4>
           <ul style="margin:0; padding-left:18px; color:var(--muted); font-size:14px">
-            <li>입장료는 <b>탄소중립 포인트</b> 납부가 원칙입니다.</li>
-            <li>포인트 부족 시 현금 등으로 대체 결제 가능.</li>
-            <li>이용 실적은 환경부 운영체계에 연동됩니다.</li>
+            <li><b>기증 적립:</b> 권당 20p (상태/수요 가중치 적용)</li>
+            <li><b>월간 배지:</b> ‘그린 기부자’, ‘슈퍼 서포터’ 등 레벨 부여</li>
+            <li><b>제휴 쿠폰:</b> 친환경 카페/서점 할인 쿠폰 자동 발급</li>
+            <li><b>우선 입장:</b> 인기 타임 슬롯 우선 예약권</li>
+            <li><b>기부 증서:</b> PDF 영수증(기관 협력 시 기부금 영수증 전환 가능)</li>
           </ul>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+            <span class="pill">🏅 그린 배지</span>
+            <span class="pill">🎟️ 우선 입장</span>
+            <span class="pill">🧾 기부 증서</span>
+            <span class="pill">☕ 제휴 쿠폰</span>
+          </div>
         </div>
         <div class="card" style="padding:14px">
-          <h4 style="margin:0 0 8px; font-size:18px">자주 묻는 질문 (요약)</h4>
-          <details class="card" style="padding:12px; border-radius:12px; margin-bottom:8px">
-            <summary style="font-weight:800; cursor:pointer">대여/소장 차이는?</summary>
-            <p style="color:var(--muted); font-size:14px">MVP에서는 동일하게 취급하되, 정식 서비스에선 반납 주기/소장 한도 정책을 별도 공지합니다.</p>
-          </details>
-          <details class="card" style="padding:12px; border-radius:12px">
-            <summary style="font-weight:800; cursor:pointer">도서 상태 기준은?</summary>
-            <p style="color:var(--muted); font-size:14px">최상/양호/보통 3단계로 표기하며, 훼손이 심한 자료는 보존처리 또는 재활용합니다.</p>
-          </details>
+          <h4 style="margin:0 0 8px">인센티브 규정(요약)</h4>
+          <p style="color:var(--muted); font-size:14px">
+            반입 심사 통과 자료에 한해 적립됩니다. 훼손/불법복제/저작권 문제 자료는 반입 불가하며, 적립도 제한됩니다.
+            세부 규정은 추후 고시합니다.
+          </p>
         </div>
       </div>
     </section>
 
     <!-- 거점 도서관 -->
     <section id="branches" hidden>
-      <h3 style="font-size:20px; font-weight:900; margin:0 0 10px">거점 도서관</h3>
+      <h3 style="font-size:20px; font-weight:900; margin:0 0 10px">거점 도서관(대한민국 광역자치단체)</h3>
+      <p class="meta-sub" style="margin:0 0 8px">※ 도 단위는 도청 소재지(행정중심)에 설치</p>
       <div class="grid grid-3" id="branchList"></div>
     </section>
 
@@ -292,8 +385,8 @@
           </div>
         </div>
         <div class="field" style="margin-top:8px">
-          <label for="list">기증 목록 (제목/저자/발행연도)</label>
-          <textarea id="list" rows="5" placeholder="예) 고전문학 산책 / 최은지 / 2008&#10;지구를 구하는 작은 독서 / 김하늘 / 2017"></textarea>
+          <label for="list">기증 목록 (제목/저자/발행연도/십진분류코드)</label>
+          <textarea id="list" rows="5" placeholder="예) 고전문학 산책 / 최은지 / 2008 / 820&#10;지구를 구하는 작은 독서 / 김하늘 / 2017 / 300"></textarea>
         </div>
         <div class="grid grid-2" style="margin-top:8px">
           <div class="field">
@@ -322,7 +415,46 @@
       </div>
     </section>
 
-    <!-- 법률(안) 요약 -->
+    <!-- (8) 정보/법안 요약 -->
+    <section id="info" hidden>
+      <h3 style="font-size:20px; font-weight:900; margin:0 0 10px">정보 · 법안 요약</h3>
+      <div class="grid grid-2">
+        <div class="card" style="padding:14px">
+          <h4 style="margin:0 0 6px">문제상황</h4>
+          <ul style="margin:0; padding-left:18px; color:var(--muted)">
+            <li>도서관 제적·폐기 자료의 체계적 순환 부족</li>
+            <li>보존/순환 비용 대비 시민 접근성 낮음</li>
+            <li>ESG·탄소중립 활동과의 연결 고리 미흡</li>
+          </ul>
+        </div>
+        <div class="card" style="padding:14px">
+          <h4 style="margin:0 0 6px">해결방안: 폐기도서 도서관</h4>
+          <ul style="margin:0; padding-left:18px; color:var(--muted)">
+            <li>광역자치단체 거점 설치 · 디지털 검색/열람 시스템</li>
+            <li>탄소중립 포인트 결제 연동(입장 100p, 1일 3권)</li>
+            <li>기증 인센티브(포인트/배지/쿠폰)로 순환 촉진</li>
+          </ul>
+        </div>
+        <div class="card" style="padding:14px">
+          <h4 style="margin:0 0 6px">기대 효과</h4>
+          <ul style="margin:0; padding-left:18px; color:var(--muted)">
+            <li>문화 접근성 확대와 책 생애주기 연장</li>
+            <li>폐기물 감축 및 CO₂ 감축(환경효과 가시화)</li>
+            <li>민관 협력 ESG 캠페인 촉진</li>
+          </ul>
+        </div>
+        <div class="card" style="padding:14px">
+          <h4 style="margin:0 0 6px">주요 조항(요약)</h4>
+          <ul style="margin:0; padding-left:18px; color:var(--muted)">
+            <li>광역 단위 1개소 이상 설치(문체부 총괄·환경부 협력)</li>
+            <li>포인트 부족 시 대체 결제 가능, 실적 환경부 연동</li>
+            <li>디지털 시스템 구축·운영(검색/예약/열람/기증)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- (7) 기존 법률(안) 섹션 유지 -->
     <section id="law" hidden>
       <h3 style="font-size:20px; font-weight:900; margin:0 0 10px">법률(안) 핵심 요약</h3>
       <div class="grid grid-2">
@@ -366,11 +498,9 @@
   </main>
 
   <!-- =================== 하단 모바일 탭 =================== -->
-  <nav class="bottom-nav" aria-label="하단 탭" id="bottomNav">
-    <!-- JS로 채움 -->
-  </nav>
+  <nav class="bottom-nav" aria-label="하단 탭" id="bottomNav"></nav>
 
-  <!-- =================== 모달 =================== -->
+  <!-- =================== 모달: 대여 =================== -->
   <div class="modal" id="borrowModal" role="dialog" aria-modal="true" aria-labelledby="borrowTitle">
     <div class="panel">
       <h4 id="borrowTitle" style="margin:0 0 6px; font-size:20px; font-weight:900">포인트로 대여하기</h4>
@@ -384,6 +514,22 @@
     </div>
   </div>
 
+  <!-- =================== 모달: 지도(9) =================== -->
+  <div class="modal" id="mapModal" role="dialog" aria-modal="true" aria-labelledby="mapTitle">
+    <div class="panel">
+      <h4 id="mapTitle" style="margin:0 0 8px; font-size:20px; font-weight:900">길찾기 미리보기</h4>
+      <div id="mapFrameWrap" class="card" style="padding:0; overflow:hidden; height:320px">
+        <!-- OpenStreetMap 검색 결과를 iframe으로 간단 프리뷰 (정확 좌표 미지정 시 검색페이지 사용) -->
+        <iframe id="mapFrame" title="지도 미리보기" style="width:100%; height:320px; border:0" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+      <p class="meta-sub" id="mapAddr" style="margin:8px 0 0"></p>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px">
+        <a class="btn" id="openMapNew" target="_blank" rel="noopener">새 탭에서 열기</a>
+        <button class="btn primary" id="closeMap">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <div class="container">
       ⓒ <span id="year"></span> 폐기도서 도서관 (MVP). 본 서비스는 시범 UI로 실제 운영과 다를 수 있습니다.
@@ -393,34 +539,69 @@
   <script>
     // ======================= MOCK 데이터 =======================
     const CATEGORIES = ["문학","역사","과학","예술","사회","기술","아동","기타"];
+    // (3) 십진분류 대류(DDC/KDC 공통 10대류)
+    const DDC_TOP = [
+      { code:"000", label:"총류" }, { code:"100", label:"철학" }, { code:"200", label:"종교" },
+      { code:"300", label:"사회과학" }, { code:"400", label:"언어" }, { code:"500", label:"자연과학" },
+      { code:"600", label:"기술과학" }, { code:"700", label:"예술" }, { code:"800", label:"문학" }, { code:"900", label:"역사" }
+    ];
+
     const BOOKS = [
-      { id:"b1", title:"지구를 구하는 작은 독서", author:"김하늘", year:2017, category:"사회", condition:"양호",
+      { id:"b1", title:"지구를 구하는 작은 독서", author:"김하늘", year:2017, category:"사회", condition:"양호", ddc:"300",
         cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop" },
-      { id:"b2", title:"중고서적의 경제학", author:"이수빈", year:2013, category:"기술", condition:"보통",
+      { id:"b2", title:"중고서적의 경제학", author:"이수빈", year:2013, category:"기술", condition:"보통", ddc:"600",
         cover:"https://images.unsplash.com/photo-1455884981818-54cb785db6fc?q=80&w=1200&auto=format&fit=crop" },
-      { id:"b3", title:"도서관과 탄소중립", author:"정다온", year:2020, category:"사회", condition:"최상",
+      { id:"b3", title:"도서관과 탄소중립", author:"정다온", year:2020, category:"사회", condition:"최상", ddc:"020",
         cover:"https://images.unsplash.com/photo-1513475382585-d06e58bcb0ea?q=80&w=1200&auto=format&fit=crop" },
-      { id:"b4", title:"아이와 함께 읽는 과학", author:"박윤호", year:2015, category:"과학", condition:"양호",
+      { id:"b4", title:"아이와 함께 읽는 과학", author:"박윤호", year:2015, category:"과학", condition:"양호", ddc:"500",
         cover:"https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=1200&auto=format&fit=crop" },
-      { id:"b5", title:"고전문학 산책", author:"최은지", year:2008, category:"문학", condition:"보통",
+      { id:"b5", title:"고전문학 산책", author:"최은지", year:2008, category:"문학", condition:"보통", ddc:"820",
         cover:"https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1200&auto=format&fit=crop" },
-      { id:"b6", title:"예술, 지속가능성을 그리다", author:"RYU", year:2019, category:"예술", condition:"양호",
+      { id:"b6", title:"예술, 지속가능성을 그리다", author:"RYU", year:2019, category:"예술", condition:"양호", ddc:"700",
         cover:"https://images.unsplash.com/photo-1457694587812-e8bf29a43845?q=80&w=1200&auto=format&fit=crop" },
     ];
+
+    // (1) 광역자치단체 거점(도는 도청소재지 기준)
     const BRANCHES = [
-      { id:"seoul", name:"서울 폐기도서 도서관", address:"서울특별시 중구 책사랑로 10", phone:"02-123-4567", hours:"화–일 10:00–19:00 (월 휴관)" },
-      { id:"busan", name:"부산 폐기도서 도서관", address:"부산광역시 해운대구 바다길 42", phone:"051-987-6543", hours:"화–일 10:00–19:00 (월 휴관)" },
-      { id:"jeonju", name:"전주 폐기도서 도서관", address:"전북 전주시 완산구 한지로 88", phone:"063-222-1122", hours:"화–일 10:00–18:00 (월 휴관)" },
+      { id:"seoul",  name:"서울특별시 폐기도서 도서관", address:"서울특별시 중구 세종대로 110", phone:"02-123-4567", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"busan",  name:"부산광역시 폐기도서 도서관", address:"부산광역시 연제구 중앙대로 1001", phone:"051-987-6543", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"daegu",  name:"대구광역시 폐기도서 도서관", address:"대구광역시 북구 연암로 40", phone:"053-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"incheon",name:"인천광역시 폐기도서 도서관", address:"인천광역시 남동구 정각로 29", phone:"032-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"gwangju",name:"광주광역시 폐기도서 도서관", address:"광주광역시 서구 내방로 111", phone:"062-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"daejeon",name:"대전광역시 폐기도서 도서관", address:"대전광역시 서구 둔산로 100", phone:"042-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"ulsan",  name:"울산광역시 폐기도서 도서관", address:"울산광역시 남구 중앙로 201", phone:"052-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"sejong", name:"세종특별자치시 폐기도서 도서관", address:"세종특별자치시 한누리대로 2130", phone:"044-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"gyeonggi",name:"경기도 폐기도서 도서관(수원)", address:"경기도 수원시 팔달구 효원로 1", phone:"031-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"gangwon",name:"강원특별자치도 폐기도서 도서관(춘천)", address:"강원특별자치도 춘천시 중앙로 1", phone:"033-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"chungbuk",name:"충청북도 폐기도서 도서관(청주)", address:"충청북도 청주시 상당구 상당로 82", phone:"043-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"chungnam",name:"충청남도 폐기도서 도서관(홍성·내포)", address:"충청남도 홍성군 홍북읍 내포로 1", phone:"041-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"jeonbuk",name:"전북특별자치도 폐기도서 도서관(전주)", address:"전북특별자치도 전주시 완산구 효자로 225", phone:"063-222-1122", hours:"화–일 10:00–18:00 (월 휴관)" },
+      { id:"jeonnam",name:"전라남도 폐기도서 도서관(무안)", address:"전라남도 무안군 삼향읍 오룡길 1", phone:"061-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"gyeongbuk",name:"경상북도 폐기도서 도서관(안동)", address:"경상북도 안동시 풍천면 도청대로 455", phone:"054-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"gyeongnam",name:"경상남도 폐기도서 도서관(창원)", address:"경상남도 창원시 의창구 중앙대로 300", phone:"055-000-0000", hours:"화–일 10:00–19:00 (월 휴관)" },
+      { id:"jeju",  name:"제주특별자치도 폐기도서 도서관(제주)", address:"제주특별자치도 제주시 문연로 6", phone:"064-000-0000", hours:"화–일 10:00–18:00 (월 휴관)" },
+    ];
+
+    // (5) 인기 대출/판매 · (6) 이달의 기부자
+    const POPULAR_LOANS = [
+      ["도서관과 탄소중립", 128], ["고전문학 산책", 112], ["아이와 함께 읽는 과학", 98], ["지구를 구하는 작은 독서", 92], ["예술, 지속가능성을 그리다", 81]
+    ];
+    const POPULAR_SALES = [
+      ["중고서적의 경제학", 76], ["고전문학 산책", 55], ["도서관과 탄소중립", 52], ["아이와 함께 읽는 과학", 41], ["지구를 구하는 작은 독서", 39]
+    ];
+    const MONTH_DONORS = [
+      ["김OO", 120], ["이OO", 88], ["박OO", 70], ["최OO", 62], ["정OO", 50]
     ];
 
     // ======================= 상태/DOM =======================
-    const state = { active:"home", query:"", category:null, selected:new Set(), points:360 };
-    const sections = ["home","search","how","branches","donate","law","faq"];
+    const state = { active:"home", query:"", category:null, ddc:null, selected:new Set(), points:360 };
+    const sections = ["home","search","how","incentives","branches","donate","info","law","faq"];
 
     const $ = id => document.getElementById(id);
     const yearEl = $("year");
     const qInput = $("q");
     const categoriesWrap = $("categories");
+    const ddcCatsWrap = $("ddcCats");
     const resultsWrap = $("results");
     const borrowBtn = $("borrowBtn");
     const branchList = $("branchList");
@@ -436,8 +617,18 @@
     const tabsDesktop = $("tabsDesktop");
     const bottomNav = $("bottomNav");
 
+    const rankLoansEl = $("rankLoans");
+    const rankSalesEl = $("rankSales");
+    const rankDonorsEl = $("rankDonors");
+
+    const mapModal = $("mapModal");
+    const mapFrame = $("mapFrame");
+    const mapAddr = $("mapAddr");
+    const openMapNew = $("openMapNew");
+    const closeMap = $("closeMap");
+
     const TAB_ITEMS = [
-      ["home","홈"],["search","검색"],["how","안내"],["branches","거점"],["donate","기증"],["law","법안"],["faq","FAQ"]
+      ["home","홈"],["search","검색"],["how","안내"],["incentives","인센티브"],["branches","거점"],["donate","기증"],["info","정보"],["law","법안"],["faq","FAQ"]
     ];
 
     // ======================= 공통 유틸 =======================
@@ -481,6 +672,7 @@
 
     // ======================= 검색/카테고리/결과 =======================
     function renderCategories(){
+      // 일반 분야
       categoriesWrap.innerHTML = "";
       const all = document.createElement("button");
       all.className = "chip" + (!state.category ? " active": "");
@@ -494,13 +686,36 @@
         chip.addEventListener("click", ()=>{ state.category=c; renderCategories(); renderResults(); });
         categoriesWrap.appendChild(chip);
       });
+
+      // 십진분류 대류
+      ddcCatsWrap.innerHTML = "";
+      const allD = document.createElement("button");
+      allD.className = "chip" + (!state.ddc ? " active": "");
+      allD.textContent = "전체";
+      allD.addEventListener("click", ()=>{ state.ddc=null; renderDdc(); renderResults(); });
+      ddcCatsWrap.appendChild(allD);
+
+      DDC_TOP.forEach(d=>{
+        const chip = document.createElement("button");
+        chip.className = "chip" + (state.ddc===d.code ? " active": "");
+        chip.textContent = `${d.code} ${d.label}`;
+        chip.title = "해당 대류(000~900) 포함";
+        chip.addEventListener("click", ()=>{ state.ddc=d.code; renderDdc(); renderResults(); });
+        ddcCatsWrap.appendChild(chip);
+      });
+    }
+    function renderDdc(){
+      [...ddcCatsWrap.children].forEach(btn=>{
+        if(!btn.dataset) return;
+      });
     }
     function filteredBooks(){
       const q = state.query.trim().toLowerCase();
       return BOOKS.filter(b=>{
         const catOk = state.category ? b.category===state.category : true;
-        const qOk = !q ? true : [b.title,b.author,String(b.year),b.category].join(" ").toLowerCase().includes(q);
-        return catOk && qOk;
+        const ddcOk = state.ddc ? String(b.ddc).startsWith(state.ddc[0]) && b.ddc.startsWith(state.ddc) || b.ddc.startsWith(state.ddc) : true;
+        const qOk = !q ? true : [b.title,b.author,String(b.year),b.category,b.ddc].join(" ").toLowerCase().includes(q);
+        return catOk && ddcOk && qOk;
       });
     }
     function renderResults(){
@@ -513,7 +728,7 @@
           <img src="${b.cover}" alt="${b.title} 표지" loading="lazy" width="1200" height="180" style="height:180px; width:100%; object-fit:cover">
           <div class="meta">
             <h3>${b.title}</h3>
-            <div class="meta-sub">${b.author} · ${b.year} · ${b.category} · 상태 ${b.condition}</div>
+            <div class="meta-sub">${b.author} · ${b.year} · ${b.category} · 상태 ${b.condition} · <b>DDC ${b.ddc}</b></div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px">
               <button class="btn ${state.selected.has(b.id) ? "primary": ""}" data-id="${b.id}">
                 ${state.selected.has(b.id) ? "선택됨" : "선택"}
@@ -538,6 +753,21 @@
       borrowBtn.disabled = !can;
     }
 
+    // ======================= 랭크/기부자 =======================
+    function renderRanks(){
+      const make = (list, root) => {
+        root.innerHTML = "";
+        list.slice(0,5).forEach(([name, val], i)=>{
+          const li = document.createElement("li");
+          li.innerHTML = `<span>${i+1}. ${name}</span><b>${val}</b>`;
+          root.appendChild(li);
+        });
+      };
+      make(POPULAR_LOANS, rankLoansEl);
+      make(POPULAR_SALES, rankSalesEl);
+      make(MONTH_DONORS, rankDonorsEl);
+    }
+
     // ======================= 거점/기증 =======================
     function renderBranches(){
       branchList.innerHTML = "";
@@ -552,10 +782,19 @@
           <div style="color:var(--muted); font-size:14px">${b.hours}</div>
           <div style="color:var(--muted); font-size:14px">${b.phone}</div>
           <div style="display:flex; gap:8px; margin-top:10px">
-            <button class="btn primary" aria-label="${b.name} 길찾기">길찾기</button>
+            <button class="btn primary" aria-label="${b.name} 길찾기" data-map="${encodeURIComponent(b.address)}">길찾기</button>
             <button class="btn" aria-label="${b.name} 재고 보기">재고 보기</button>
           </div>
         `;
+        const goBtn = card.querySelector("button[data-map]");
+        goBtn.addEventListener("click", ()=>{
+          const q = goBtn.getAttribute("data-map");
+          const searchUrl = `https://www.openstreetmap.org/search?query=${q}`;
+          mapFrame.src = searchUrl; // 좌표가 없으므로 검색 페이지 프리뷰
+          mapAddr.textContent = decodeURIComponent(q);
+          openMapNew.href = searchUrl;
+          mapModal.classList.add("open");
+        });
         branchList.appendChild(card);
 
         const opt = document.createElement("option");
@@ -581,8 +820,11 @@
       alert("대여가 완료되었습니다. 100 포인트가 차감되었어요.");
     });
 
+    // 지도
+    closeMap.addEventListener("click", ()=> mapModal.classList.remove("open"));
+
     // ======================= 이벤트 =======================
-    $("goSearch")?.addEventListener?.("click", ()=>show("search")); // (데스크탑에서만 표시될 수 있음)
+    $("goSearch")?.addEventListener?.("click", ()=>show("search"));
     $("q").addEventListener("input", (e)=>{ state.query = e.target.value; renderResults(); });
     add100Btn.addEventListener("click", ()=>{ state.points += 100; updateHeader(); });
     ctaSearchBtn.addEventListener("click", ()=>show("search"));
@@ -596,15 +838,15 @@
     // ======================= 초기 렌더 =======================
     function init(){
       yearEl.textContent = new Date().getFullYear();
-      // 탭 렌더
       renderTabs();
-      // 포인트/카테고리/결과/거점 렌더
-      updateHeader(); renderCategories(); renderResults(); renderBranches();
-      // 시작 탭
+      updateHeader();
+      renderCategories();
+      renderResults();
+      renderRanks();
+      renderBranches();
       show(state.active);
     }
     document.addEventListener("visibilitychange", ()=> {
-      // iOS에서 홈으로 갔다 올 때 하단 안전영역 재적용
       document.body.style.paddingBottom = getComputedStyle($("bottomNav")).height;
     });
     init();
